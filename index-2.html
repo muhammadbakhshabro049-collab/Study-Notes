@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>StudyHub — Notes</title>
+<style>
+:root{--bg:#f5f7fb;--card:#fff;--text:#182033;--muted:#6b7280;--line:#e5e7ef;--p:#635bff;--soft:#eeecff}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:var(--text)}button,input,textarea{font:inherit}
+.app{display:flex;min-height:100vh}.side{width:240px;position:fixed;inset:0 auto 0 0;background:var(--card);border-right:1px solid var(--line);padding:24px 15px}.logo{font-size:23px;font-weight:800;margin:0 10px 30px}.logo b{color:var(--p)}
+.nav button{width:100%;border:0;background:none;color:var(--muted);padding:12px 14px;margin:4px 0;text-align:left;border-radius:12px;cursor:pointer}.nav button:hover,.nav button.active{background:var(--soft);color:var(--p);font-weight:700}
+.main{margin-left:240px;width:calc(100% - 240px);padding:28px;max-width:1450px}.top{display:flex;justify-content:space-between;align-items:center;gap:15px}.top h1{margin:0;font-size:30px}.muted{color:var(--muted)}.actions{display:flex;gap:8px}.btn,.icon{border:1px solid var(--line);background:var(--card);color:var(--text);padding:10px 14px;border-radius:11px;cursor:pointer}.primary{background:var(--p);border-color:var(--p);color:white}
+.search{margin:24px 0}.search input{width:100%;padding:15px 17px;border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--text);outline:none}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}.stat,.card{background:var(--card);border:1px solid var(--line);border-radius:17px;padding:19px}.stat strong{display:block;font-size:28px;margin-top:5px}.head{display:flex;justify-content:space-between;align-items:center;margin:26px 0 14px}.head h2{margin:0;font-size:20px}
+.filters{display:flex;gap:8px;flex-wrap:wrap}.filter{border:1px solid var(--line);background:var(--card);color:var(--muted);padding:8px 13px;border-radius:20px;cursor:pointer}.filter.active{background:var(--p);color:white;border-color:var(--p)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}.note{cursor:pointer;transition:.2s}.note:hover{transform:translateY(-3px)}.tag{display:inline-block;padding:5px 9px;border-radius:8px;background:var(--soft);color:var(--p);font-size:12px;font-weight:700}.note h3{margin:14px 0 7px}.note p{color:var(--muted);line-height:1.55;min-height:48px}.progress{height:7px;background:var(--line);border-radius:10px;overflow:hidden}.progress i{display:block;height:100%;background:var(--p)}.empty{text-align:center;grid-column:1/-1;padding:45px;color:var(--muted)}
+.modal{position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;padding:18px;z-index:10}.modal.show{display:flex}.box{width:min(680px,100%);max-height:90vh;overflow:auto;background:var(--card);border-radius:20px;padding:24px}.modalhead{display:flex;justify-content:space-between;align-items:center}.box input,.box textarea{width:100%;padding:12px;margin:7px 0 15px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--text);outline:none}.box textarea{min-height:180px;resize:vertical}.body{white-space:pre-line;color:var(--muted);line-height:1.75}.form{text-align:right}.mobile{display:none}
+@media(max-width:900px){.side{transform:translateX(-100%);transition:.2s;z-index:5}.side.open{transform:translateX(0)}.main{margin-left:0;width:100%;padding:20px}.mobile{display:inline-block}.grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.stats,.grid{grid-template-columns:1fr}.top h1{font-size:24px}.actions .primary{display:none}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="side" id="side">
+<div class="logo">Study<b>Hub</b></div>
+<nav class="nav">
+<button class="active">🏠 Dashboard</button>
+<button onclick="filter('All')">📚 My Notes</button>
+<button onclick="document.getElementById('search').focus()">🔎 Search</button>
+<button onclick="showProgress()">📈 Progress</button>
+</nav>
+</aside>
+<main class="main">
+<header class="top">
+<div><button class="icon mobile" onclick="toggleSide()">☰</button><h1>Study Dashboard</h1><span class="muted">Keep learning. Keep improving.</span></div>
+<div class="actions"><button class="icon" onclick="dark()">🌙</button><button class="btn primary" onclick="openAdd()">＋ Add Note</button></div>
+</header>
+<div class="search"><input id="search" placeholder="Search notes, subjects or chapters..." oninput="render()"></div>
+<section class="stats">
+<div class="stat"><span class="muted">Total Notes</span><strong id="total">0</strong></div>
+<div class="stat"><span class="muted">Subjects</span><strong id="subs">0</strong></div>
+<div class="stat"><span class="muted">Completed</span><strong id="done">0%</strong></div>
+</section>
+<div class="head"><h2>Subjects</h2><span class="muted" id="count"></span></div>
+<div class="filters" id="filters"></div>
+<div class="head"><h2>Recent Notes</h2></div>
+<div class="grid" id="grid"></div>
+</main>
+</div>
+
+<div class="modal" id="view">
+<div class="box"><div class="modalhead"><span class="tag" id="vsub"></span><button class="icon" onclick="closeM('view')">✕</button></div><h2 id="vtitle"></h2><div class="body" id="vbody"></div><div class="form"><button class="btn primary" id="complete"></button></div></div>
+</div>
+<div class="modal" id="add">
+<div class="box"><div class="modalhead"><h2>Add New Note</h2><button class="icon" onclick="closeM('add')">✕</button></div>
+<label>Title</label><input id="nt" placeholder="e.g. Newton's Laws"><label>Subject</label><input id="ns" placeholder="e.g. Physics"><label>Notes</label><textarea id="nb" placeholder="Write your notes here..."></textarea>
+<div class="form"><button class="btn" onclick="closeM('add')">Cancel</button> <button class="btn primary" onclick="add()">Save Note</button></div></div>
+</div>
+
+<script>
+const starter=[
+{id:1,title:"Molecular Theory of Gases",subject:"Physics",body:"• Matter is made of tiny particles.\\n• Gas molecules are in continuous random motion.\\n• Collisions are approximately elastic.\\n• Temperature is related to average kinetic energy.",done:false},
+{id:2,title:"Organic Compounds",subject:"Chemistry",body:"Organic chemistry deals mainly with carbon compounds. Important families include alkanes, alkenes, alkynes, alcohols, aldehydes and ketones.",done:false},
+{id:3,title:"Limits — Introduction",subject:"Mathematics",body:"A limit describes the value that a function approaches as the input approaches a particular number.\\n\\nExample: lim(x→2) (x + 3) = 5.",done:true},
+{id:4,title:"Newton's Laws",subject:"Physics",body:"First Law: An object remains at rest or in uniform motion unless acted upon by a net external force.\\n\\nSecond Law: F = ma.\\n\\nThird Law: Forces occur in equal and opposite pairs.",done:false},
+{id:5,title:"Ratio & Proportion",subject:"Mathematics",body:"A ratio compares two quantities. A proportion states that two ratios are equal.\\n\\nExample: 2:3 = 4:6.",done:false},
+{id:6,title:"Grammar Essentials",subject:"English",body:"Review parts of speech, sentence structure, tenses, clauses, modals, determiners, punctuation and common error detection.",done:false}
+];
+let notes=JSON.parse(localStorage.getItem("studyHubNotes")||"null")||starter,selected="All";
+function save(){localStorage.setItem("studyHubNotes",JSON.stringify(notes))}
+function esc(x){return String(x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
+function render(){
+let q=document.getElementById("search").value.toLowerCase(),list=notes.filter(n=>(selected==="All"||n.subject===selected)&&(`${n.title} ${n.subject} ${n.body}`).toLowerCase().includes(q));
+let ss=[...new Set(notes.map(n=>n.subject))];
+document.getElementById("total").textContent=notes.length;document.getElementById("subs").textContent=ss.length;
+document.getElementById("done").textContent=notes.length?Math.round(notes.filter(n=>n.done).length/notes.length*100)+"%":"0%";
+document.getElementById("count").textContent=list.length+" notes";
+document.getElementById("filters").innerHTML=["All",...ss].map(s=>`<button class="filter ${s===selected?"active":""}" onclick="filter('${esc(s)}')">${esc(s)}</button>`).join("");
+document.getElementById("grid").innerHTML=list.length?list.map(n=>`<article class="card note" onclick="viewNote(${n.id})"><span class="tag">${esc(n.subject)}</span><h3>${esc(n.title)}</h3><p>${esc(n.body.slice(0,125))}${n.body.length>125?"…":""}</p><div class="progress"><i style="width:${n.done?100:12}%"></i></div><small class="muted">${n.done?"✓ Completed":"Not completed"}</small></article>`).join(""):`<div class="empty">No notes found.</div>`;
+}
+function filter(s){selected=s;render()}
+function viewNote(id){let n=notes.find(x=>x.id===id);document.getElementById("vsub").textContent=n.subject;document.getElementById("vtitle").textContent=n.title;document.getElementById("vbody").textContent=n.body;let b=document.getElementById("complete");b.textContent=n.done?"Mark Incomplete":"Mark Complete";b.onclick=()=>{n.done=!n.done;save();render();viewNote(id)};document.getElementById("view").classList.add("show")}
+function openAdd(){document.getElementById("add").classList.add("show");document.getElementById("nt").focus()}
+function add(){let t=nt.value.trim(),s=ns.value.trim(),b=nb.value.trim();if(!t||!s||!b){alert("Please fill in all fields.");return}notes.unshift({id:Date.now(),title:t,subject:s,body:b,done:false});save();selected="All";render();closeM("add");nt.value=ns.value=nb.value=""}
+function closeM(id){document.getElementById(id).classList.remove("show")}
+function dark(){document.body.classList.toggle("dark");localStorage.setItem("studyDark",document.body.classList.contains("dark"))}
+function toggleSide(){document.getElementById("side").classList.toggle("open")}
+function showProgress(){alert("Progress: "+document.getElementById("done").textContent+" of your notes are completed.")}
+if(localStorage.getItem("studyDark")==="true")document.body.classList.add("dark");render();
+</script>
+</body>
+</html>
